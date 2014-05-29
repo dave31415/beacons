@@ -9,7 +9,7 @@ base_url="http://api.kontakt.io/"
 api_key=open('api.key','r').read().strip()
 root_dir='/home/davej/beacons'
 
-data_dir=root_dir+'/data/dresser'
+data_dir=root_dir+'/data'
 plot_dir=root_dir+'/plots'
 
 unique_ids=['dFTG','DuOP','cYOy','aqO9','HMGV']
@@ -74,8 +74,8 @@ def post2_beacons(num=0):
     res = opener.open(req)
     return res
     
-def read_csv_dump(filename='2014-0529-07-02-16.csv'):
-    file_name=data_dir+'/'+filename
+def read_csv_dump(filename,sub_dir):
+    file_name=data_dir+'/'+sub_dir+'/'+filename
     data=list(csv.DictReader(open(file_name,'rU')))
     #filter out non-ibeacons for now
     data=[d for d in data if d['iBeacon flag'] == 'true'] 
@@ -84,19 +84,20 @@ def read_csv_dump(filename='2014-0529-07-02-16.csv'):
         d.update(mac_lookup[mac])
     return data
 
-def read_all():
-    files=glob.glob(data_dir+'/*')        
+def read_all(sub_dir='Stack2m'):
+    files=glob.glob(data_dir+'/'+sub_dir+'/*')        
     dat=defaultdict(list)
 
     for f in files:
         filename=f.split('/')[-1]
-        data=read_csv_dump(filename)
+        data=read_csv_dump(filename,sub_dir)
         for line in data:    
             name=line['name']
             dat[name].append(line)
     return dat
     
-def plot_all(data):
+def plot_all(sub_dir='Stack2m'):
+    data=read_all(sub_dir)
     legs=[]
     mean_rssi=[]
     mean_rssi_err=[]
@@ -125,7 +126,17 @@ def plot_all(data):
     plt.ylabel('Signal Strength  ( RSSI )')
     plt.xlabel('Iteration')
     plt.legend(legs)
-    fig.savefig(plot_dir+'/dresser_rssi.png')
-    plt.show()    
+    plt.title(sub_dir)
+    fig.savefig(plot_dir+'/'+sub_dir+'_rssi.png')
+    #plt.show()    
+
+def plot_all_subs():
+    sub_dirs=glob.glob(data_dir+'/*')     
+    for sub_full in sub_dirs:
+        sub=sub_full.split('/')[-1]
+        print sub
+        plot_all(sub)        
+
+
 
 
