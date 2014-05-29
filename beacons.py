@@ -4,6 +4,9 @@ import csv, glob
 from collections import defaultdict
 from matplotlib import pylab as plt
 import numpy as np
+from time import mktime
+from datetime import datetime
+import time
 
 base_url="http://api.kontakt.io/"
 api_key=open('api.key','r').read().strip()
@@ -11,6 +14,8 @@ root_dir='/home/davej/beacons'
 
 data_dir=root_dir+'/data'
 plot_dir=root_dir+'/plots'
+
+ts_start=1401384000
 
 unique_ids=['dFTG','DuOP','cYOy','aqO9','HMGV']
 names=['Bathroom','Bedroom','Boys room','Gwens Room','Kitchen']
@@ -81,7 +86,18 @@ def read_csv_dump(filename,sub_dir):
     data=[d for d in data if d['iBeacon flag'] == 'true'] 
     for d in data:
         mac=d['MAC Addr']
-        d.update(mac_lookup[mac])
+        d.update(mac_lookup[mac])   
+        d['SS']=100.0+float(d['RSSI'])
+        #get the time, have to remove fraction of second, keep it anyway
+        date_time=d['Last Updated']
+        dt=date_time.split('.')
+        dt_round=dt[0]
+        dt_frac=dt[1]
+        time_st=time.strptime(dt_round,'%Y-%m-%d %H:%M:%S')
+        #d['time_st']=time_st
+        frac_secs=float('.'+dt_frac)
+        d['epoch']=mktime(time_st)+frac_secs
+        d['datetime']=datetime.fromtimestamp(d['epoch'])
     return data
 
 def read_all(sub_dir='Stack2m'):
@@ -99,8 +115,8 @@ def read_all(sub_dir='Stack2m'):
 def plot_all(sub_dir='Stack2m'):
     data=read_all(sub_dir)
     legs=[]
-    mean_rssi=[]
-    mean_rssi_err=[]
+    mean_ss=[]
+    mean_ss_err=[]
     max_x=0
     xextra=10
     fig=plt.figure()
@@ -109,26 +125,32 @@ def plot_all(sub_dir='Stack2m'):
         max_x=max(max_x,num)
         print name
         legs.append(name)
-        ts=[i['Last Updated'] for i in dat]
-        rssi=np.array([float(i['RSSI']) for i in dat])
-        print ts
-        print rssi
-        mean_rssi.append(rssi.mean())
-        mean_rssi_err.append(rssi.std()/np.sqrt(num))
-        x=np.arange(num)
-        plt.plot(x,rssi,linewidth=3)
-    for m,merr in zip(mean_rssi,mean_rssi_err):
-        plt.hlines(m,0,num+10,linestyle='--')
-        plt.hlines(m-merr,0,num+xextra,linestyle='dotted')
-        plt.hlines(m+merr,0,num+xextra,linestyle='dotted')        
-        plt.fill_between([0,num+xextra],m+merr,m-merr,alpha=0.2)
-    plt.xlim=(0,max_x+20)
-    plt.ylabel('Signal Strength  ( RSSI )')
-    plt.xlabel('Iteration')
-    plt.legend(legs)
+        ts=np.array([i['epoch'] for i in dat])
+        SS=np.array([i['SS'] for i in dat])
+        mean_ss.append(SS.mean())
+        mean_ss_err.append(SS.std()/np.sqrt(num))
+        x=ts-ts_start        
+        o=np.argsort(x)
+        plt.plot(x[o],SS[o],'o')
+                
+
+    for m,merr in zip(mean_ss,mean_ss_err):
+        #plt.hlines(m,0,num+10,linestyle='--') 
+        #plt.hlines(m-merr,0,num+xextra,linestyle='dotted')
+        #plt.hlines(m+merr,0,num+xextra,linestyle='dotted')        
+        #plt.fill_between([0,num+xextra],m+merr,m-merr,alpha=0.2)
+        pass    
+
+    #plt.xlim=[0,max_x+20]
+    plt.ylabel('Signal Strength  = RSSI +100')
+    plt.xlabel('Seconds')
+    
+    legs_full=[leg +  " : "+'%0.2f'%m+' +/- ' +'%0.1f'%e for leg,m,e in zip(legs,mean_ss,mean_ss_err)]        
+    plt.legend(legs_full)
     plt.title(sub_dir)
-    fig.savefig(plot_dir+'/'+sub_dir+'_rssi.png')
-    #plt.show()    
+    #fig.savefig(plot_dir+'/'+sub_dir+'_ss.png')
+    plt.show()    
+    
 
 def plot_all_subs():
     sub_dirs=glob.glob(data_dir+'/*')     
@@ -136,6 +158,86 @@ def plot_all_subs():
         sub=sub_full.split('/')[-1]
         print sub
         plot_all(sub)        
+
+
+def proc_range(sub_dir='Range0.5to4mby0.5'):
+    break_points=[700,770,818,871,915,965,1015,1070,1200]
+    distance_m=np.array([0.5,1.0,1.5,2.0,2.5,3.0,3.5,4.0])
+    fin=break_points[1:]
+    sta=break_points[0:-1]    
+
+    data=read_all(sub_dir)    
+    legs=[]
+    mean_ss=[]
+    mean_ss_err=[]
+    max_x=0
+    xextra=10
+    fig=plt.figure()
+    dist_data={}
+    for name,dat in data.iteritems():
+        num=len(dat)
+        max_x=max(max_x,num)
+        print name
+        legs.append(name)
+        ts=np.array([i['epoch'] for i in dat])
+        SS=np.array([i['SS'] for i in dat])
+        mean_ss.append(SS.mean())
+        mean_ss_err.append(SS.std()/np.sqrt(num))
+        x=ts-ts_start        
+        o=np.argsort(x)
+        X=x[o]
+        Y=SS[o]
+        plt.plot(X,Y,'o')
+        t_mean_bin=[]
+        ss_mean_bin=[]
+        ss_mean_bin_err=[]
+        for first,last in zip(sta,fin):
+            inbin=(X>first)* (X<last)
+            XX=X[inbin]
+            YY=Y[inbin]
+            t_mean_bin.append(XX.mean())
+            ss_mean_bin.append(YY.mean())                 
+            num_pt=len(YY)
+            YY_err=YY.std()/np.sqrt(num_pt)
+            corr=(num_pt/(num_pt-1.0))
+            print corr
+            YY_err=YY_err*corr
+            
+            ss_mean_bin_err.append(YY_err)
+        #plt.plot(t_mean_bin,ss_mean_bin,'ok-',markersize=15)
+        dist_data[name]=[ss_mean_bin,ss_mean_bin_err]
+
+    for bp in break_points:
+        plt.vlines(bp,-5,50)    
+
+    plt.ylabel('Signal Strength  = RSSI +100')
+    plt.xlabel('Seconds')
+    
+    legs_full=[leg +  " : "+'%0.2f'%m+' +/- ' +'%0.1f'%e for leg,m,e in zip(legs,mean_ss,mean_ss_err)]        
+    plt.legend(legs_full)
+    plt.title(sub_dir)
+    #fig.savefig(plot_dir+'/'+sub_dir+'_ss.png')
+    plt.show()   
+    fig2=plt.figure()
+    leg_dist=[]
+    for name,ss_mean_data in dist_data.iteritems():
+        ss_mean_val=ss_mean_data[0]
+        ss_mean_val_err=ss_mean_data[1]
+        plt.plot(distance_m,ss_mean_val,'o-',markersize=10)
+        #plt.errorbar(distance_m,ss_mean_val,xerr=0.1,yerr=ss_mean_val_err)
+        leg_dist.append(name)
+    for name,ss_mean_data in dist_data.iteritems():
+        ss_mean_val=ss_mean_data[0]
+        ss_mean_val_err=ss_mean_data[1]
+        #plt.plot(distance_m,ss_mean_val,'o-')
+        plt.errorbar(distance_m,ss_mean_val,xerr=0.1,yerr=ss_mean_val_err)    
+        plt.xlabel('Distance (m)')
+
+    plt.legend(leg_dist)
+    plt.show()
+            
+
+
 
 
 
