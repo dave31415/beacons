@@ -10,7 +10,7 @@ import time
 
 base_url="http://api.kontakt.io/"
 api_key=open('api.key','r').read().strip()
-root_dir='/home/davej/beacons'
+root_dir='/Users/davej/TW/beacons'
 
 data_dir=root_dir+'/data'
 plot_dir=root_dir+'/plots'
@@ -63,7 +63,7 @@ def post2_beacons(num=0):
     headers['content-type']='application/x-www-form-urlencoded'
     headers['Api-Key']=api_key
     data={'uniqueId':uid,
-    'password':'goodnight','interval':130}
+    'password':'goodnight','interval':99,'major':555555}
     
     req = urllib2.Request(url, urllib.urlencode(data), headers)
     
@@ -131,7 +131,7 @@ def plot_all(sub_dir='Stack2m'):
         mean_ss_err.append(SS.std()/np.sqrt(num))
         x=ts-ts_start        
         o=np.argsort(x)
-        plt.plot(x[o],SS[o],'o')
+        plt.plot(x[o],SS[o],'o-')
                 
 
     for m,merr in zip(mean_ss,mean_ss_err):
@@ -200,7 +200,7 @@ def proc_range(sub_dir='Range0.5to4mby0.5'):
             num_pt=len(YY)
             YY_err=YY.std()/np.sqrt(num_pt)
             corr=(num_pt/(num_pt-1.0))
-            print corr
+            print name,num_pt
             YY_err=YY_err*corr
             
             ss_mean_bin_err.append(YY_err)
@@ -223,15 +223,24 @@ def proc_range(sub_dir='Range0.5to4mby0.5'):
     for name,ss_mean_data in dist_data.iteritems():
         ss_mean_val=ss_mean_data[0]
         ss_mean_val_err=ss_mean_data[1]
-        plt.plot(distance_m,ss_mean_val,'o-',markersize=10)
+        plt.plot(np.log10(distance_m),ss_mean_val,'o-',markersize=10)
         #plt.errorbar(distance_m,ss_mean_val,xerr=0.1,yerr=ss_mean_val_err)
         leg_dist.append(name)
     for name,ss_mean_data in dist_data.iteritems():
         ss_mean_val=ss_mean_data[0]
         ss_mean_val_err=ss_mean_data[1]
         #plt.plot(distance_m,ss_mean_val,'o-')
-        plt.errorbar(distance_m,ss_mean_val,xerr=0.1,yerr=ss_mean_val_err)    
-        plt.xlabel('Distance (m)')
+        #plt.errorbar(np.log10(distance_m),ss_mean_val,xerr=0.1,yerr=ss_mean_val_err)    
+        plt.xlabel('Log Distance (m)')
+
+    xfid=np.linspace(-0.5,0.5,30)
+    zpt=20.0
+    slope=2.0
+    plt.plot(xfid,zpt-slope*xfid,linewidth=5,linestyle='--')
+    slope=40.0
+    plt.plot(xfid,zpt-slope*xfid,linewidth=5,linestyle='--')
+    fig2.savefig(plot_dir+'/ranging_test.png')
+    
 
     plt.legend(leg_dist)
     plt.show()
