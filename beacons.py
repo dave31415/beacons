@@ -10,7 +10,9 @@ import time
 
 base_url="http://api.kontakt.io/"
 api_key=open('api.key','r').read().strip()
-root_dir='/Users/davej/TW/beacons'
+
+root_dir='/home/davej/beacons'
+#root_dir='/Users/davej/TW/beacons'
 
 data_dir=root_dir+'/data'
 plot_dir=root_dir+'/plots'
@@ -84,21 +86,26 @@ def read_csv_dump(filename,sub_dir):
     data=list(csv.DictReader(open(file_name,'rU')))
     #filter out non-ibeacons for now
     data=[d for d in data if d['iBeacon flag'] == 'true'] 
+    latest_measurement_time=0.0
     for d in data:
         mac=d['MAC Addr']
         d.update(mac_lookup[mac])   
         d['SS']=100.0+float(d['RSSI'])
-        #get the time, have to remove fraction of second, keep it anyway
+        #get the time, have to remove fraction of second, keep it anyway on epoch
         date_time=d['Last Updated']
         dt=date_time.split('.')
         dt_round=dt[0]
         dt_frac=dt[1]
         time_st=time.strptime(dt_round,'%Y-%m-%d %H:%M:%S')
-        #d['time_st']=time_st
         frac_secs=float('.'+dt_frac)
         d['epoch']=mktime(time_st)+frac_secs
         d['datetime']=datetime.fromtimestamp(d['epoch'])
-    return data
+        latest_measurement_time=max(latest_measurement_time,d['epoch'])
+    for d in data:
+        d['last_time_file']=latest_measurement_time
+        d['delayed_time']=d['last_time_file']-d['epoch']
+    return data        
+
 
 def read_all(sub_dir='Stack2m'):
     files=glob.glob(data_dir+'/'+sub_dir+'/*')        
@@ -112,7 +119,7 @@ def read_all(sub_dir='Stack2m'):
             dat[name].append(line)
     return dat
     
-def plot_all(sub_dir='Stack2m'):
+def plot_all(sub_dir='Stack2m',delay_max=4):
     data=read_all(sub_dir)
     legs=[]
     mean_ss=[]
@@ -125,13 +132,13 @@ def plot_all(sub_dir='Stack2m'):
         max_x=max(max_x,num)
         print name
         legs.append(name)
-        ts=np.array([i['epoch'] for i in dat])
-        SS=np.array([i['SS'] for i in dat])
+        ts=np.array([i['epoch'] for i in dat if i['delayed_time'] < delay_max])
+        SS=np.array([i['SS'] for i in dat if i['delayed_time'] < delay_max])
         mean_ss.append(SS.mean())
         mean_ss_err.append(SS.std()/np.sqrt(num))
         x=ts-ts_start        
         o=np.argsort(x)
-        plt.plot(x[o],SS[o],'o-')
+        plt.plot(x[o],SS[o],'o')
                 
 
     for m,merr in zip(mean_ss,mean_ss_err):
@@ -160,7 +167,7 @@ def plot_all_subs():
         plot_all(sub)        
 
 
-def proc_range(sub_dir='Range0.5to4mby0.5'):
+def proc_range(sub_dir='Range0.5to4mby0.5',delay_max=3.0,noise_floor=4.0,min_plot=-4.0):
     break_points=[700,770,818,871,915,965,1015,1070,1200]
     distance_m=np.array([0.5,1.0,1.5,2.0,2.5,3.0,3.5,4.0])
     fin=break_points[1:]
@@ -179,8 +186,8 @@ def proc_range(sub_dir='Range0.5to4mby0.5'):
         max_x=max(max_x,num)
         print name
         legs.append(name)
-        ts=np.array([i['epoch'] for i in dat])
-        SS=np.array([i['SS'] for i in dat])
+        ts=np.array([i['epoch'] for i in dat if i['delayed_time'] < delay_max])
+        SS=np.array([i['SS'] for i in dat if i['delayed_time'] < delay_max])
         mean_ss.append(SS.mean())
         mean_ss_err.append(SS.std()/np.sqrt(num))
         x=ts-ts_start        
@@ -199,7 +206,7 @@ def proc_range(sub_dir='Range0.5to4mby0.5'):
             ss_mean_bin.append(YY.mean())                 
             num_pt=len(YY)
             YY_err=YY.std()/np.sqrt(num_pt)
-            corr=(num_pt/(num_pt-1.0))
+            corr=(num_pt/(num_pt-1.0+0.1))
             print name,num_pt
             YY_err=YY_err*corr
             
@@ -223,7 +230,10 @@ def proc_range(sub_dir='Range0.5to4mby0.5'):
     for name,ss_mean_data in dist_data.iteritems():
         ss_mean_val=ss_mean_data[0]
         ss_mean_val_err=ss_mean_data[1]
-        plt.plot(np.log10(distance_m),ss_mean_val,'o-',markersize=10)
+        corrected_exp=np.exp(ss_mean_val)-np.exp(noise_floor)
+        corrected_exp[corrected_exp < np.exp(min_plot)]=np.exp(min_plot)
+        ss_mean_val_correct=np.log(corrected_exp)
+        plt.plot(np.log10(distance_m),ss_mean_val_correct,'o-',markersize=10)
         #plt.errorbar(distance_m,ss_mean_val,xerr=0.1,yerr=ss_mean_val_err)
         leg_dist.append(name)
     for name,ss_mean_data in dist_data.iteritems():
@@ -231,9 +241,10 @@ def proc_range(sub_dir='Range0.5to4mby0.5'):
         ss_mean_val_err=ss_mean_data[1]
         #plt.plot(distance_m,ss_mean_val,'o-')
         #plt.errorbar(np.log10(distance_m),ss_mean_val,xerr=0.1,yerr=ss_mean_val_err)    
-        plt.xlabel('Log Distance (m)')
-
+        
+    plt.xlabel('Log Distance (m)')
     xfid=np.linspace(-0.5,0.5,30)
+    plt.plot(xfid,xfid*0.0+noise_floor,linestyle='dashed')
     zpt=20.0
     slope=2.0
     plt.plot(xfid,zpt-slope*xfid,linewidth=5,linestyle='--')
@@ -244,7 +255,96 @@ def proc_range(sub_dir='Range0.5to4mby0.5'):
 
     plt.legend(leg_dist)
     plt.show()
+    
+def proc_range2(sub_dir='Range5to.5mby.5',delay_max=3.0,noise_floor=8.0,min_plot=-4.0):
+    break_points=[160,215,269, 317, 369,418,465,521,576,624,716]
+    distance_m=np.array([5.0,4.5,4.0,3.5,3.0,2.5,2.0,1.5,1.0,0.5])
+    fin=break_points[1:]
+    sta=break_points[0:-1]    
+
+    data=read_all(sub_dir)    
+    legs=[]
+    mean_ss=[]
+    mean_ss_err=[]
+    max_x=0
+    xextra=10
+    fig=plt.figure()
+    dist_data={}
+    for name,dat in data.iteritems():
+        num=len(dat)
+        max_x=max(max_x,num)
+        print name
+        legs.append(name)
+        ts=np.array([i['epoch'] for i in dat if i['delayed_time'] < delay_max])-71600
+        SS=np.array([i['SS'] for i in dat if i['delayed_time'] < delay_max])
+        mean_ss.append(SS.mean())
+        mean_ss_err.append(SS.std()/np.sqrt(num))
+        x=ts-ts_start        
+        o=np.argsort(x)
+        X=x[o]
+        Y=SS[o]
+        plt.plot(X,Y,'o')
+        t_mean_bin=[]
+        ss_mean_bin=[]
+        ss_mean_bin_err=[]
+        for first,last in zip(sta,fin):
+            inbin=(X>first)* (X<last)
+            XX=X[inbin]
+            YY=Y[inbin]
+            t_mean_bin.append(XX.mean())
+            ss_mean_bin.append(YY.mean())                 
+            num_pt=len(YY)
+            YY_err=YY.std()/np.sqrt(num_pt)
+            corr=(num_pt/(num_pt-1.0+0.1))
+            print name,num_pt
+            YY_err=YY_err*corr
             
+            ss_mean_bin_err.append(YY_err)
+        #plt.plot(t_mean_bin,ss_mean_bin,'ok-',markersize=15)
+        dist_data[name]=[ss_mean_bin,ss_mean_bin_err]
+
+    for bp in break_points:
+        plt.vlines(bp,-5,50)    
+
+    plt.ylabel('Signal Strength  = RSSI +100')
+    plt.xlabel('Seconds')
+    
+    legs_full=[leg +  " : "+'%0.2f'%m+' +/- ' +'%0.1f'%e for leg,m,e in zip(legs,mean_ss,mean_ss_err)]        
+    #plt.legend(legs_full)
+    plt.title(sub_dir)
+    #fig.savefig(plot_dir+'/'+sub_dir+'_ss.png')
+    plt.show()   
+    fig2=plt.figure()
+    leg_dist=[]
+    for name,ss_mean_data in dist_data.iteritems():
+        ss_mean_val=ss_mean_data[0]
+        ss_mean_val_err=ss_mean_data[1]
+        corrected_exp=np.exp(ss_mean_val)-np.exp(noise_floor)
+        corrected_exp[corrected_exp < np.exp(min_plot)]=np.exp(min_plot)
+        ss_mean_val_correct=np.log(corrected_exp)
+        plt.plot(np.log10(distance_m),ss_mean_val_correct,'o-',markersize=10)
+        #plt.errorbar(distance_m,ss_mean_val,xerr=0.1,yerr=ss_mean_val_err)
+        leg_dist.append(name)
+    for name,ss_mean_data in dist_data.iteritems():
+        ss_mean_val=ss_mean_data[0]
+        ss_mean_val_err=ss_mean_data[1]
+        #plt.plot(distance_m,ss_mean_val,'o-')
+        #plt.errorbar(np.log10(distance_m),ss_mean_val,xerr=0.1,yerr=ss_mean_val_err)    
+        
+    plt.xlabel('Log Distance (m)')
+    xfid=np.linspace(-0.5,0.5,30)
+    plt.plot(xfid,xfid*0.0+noise_floor,linestyle='dashed')
+    zpt=23.0
+    slope=2.0
+    plt.plot(xfid,zpt-slope*xfid,linewidth=5,linestyle='--')
+    slope=25.0
+    plt.plot(xfid,zpt-slope*xfid,linewidth=5,linestyle='--')
+    fig2.savefig(plot_dir+'/ranging_5m_to_0.5m_by0.5m.png')
+
+    plt.legend(leg_dist)
+    plt.show()
+    
+        
 
 
 
