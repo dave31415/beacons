@@ -7,9 +7,11 @@ import numpy as np
 from time import mktime
 from datetime import datetime
 import time
+from lowess import lowess
 
 base_url="http://api.kontakt.io/"
 api_key=open('api.key','r').read().strip()
+jit=0.1
 
 root_dir='/home/davej/beacons'
 #root_dir='/Users/davej/TW/beacons'
@@ -98,7 +100,8 @@ def read_csv_dump(filename,sub_dir):
         dt_frac=dt[1]
         time_st=time.strptime(dt_round,'%Y-%m-%d %H:%M:%S')
         frac_secs=float('.'+dt_frac)
-        d['epoch']=mktime(time_st)+frac_secs
+        jitter=np.random.randn()*jit
+        d['epoch']=mktime(time_st)+frac_secs+jitter
         d['datetime']=datetime.fromtimestamp(d['epoch'])
         latest_measurement_time=max(latest_measurement_time,d['epoch'])
     for d in data:
@@ -119,7 +122,15 @@ def read_all(sub_dir='Stack2m'):
             dat[name].append(line)
     return dat
     
-def plot_all(sub_dir='Stack2m',delay_max=4):
+def smooth_ts(ts,Y):
+    #smooth a signal
+    s=np.argsort(ts)    
+    ts_s=ts[s]
+    Y_s=Y[s]
+    pass
+
+
+def plot_all(sub_dir='Stack2m',delay_max=4,doleg=True,f_lowess=0.15,dolowess=True,showplot=True):
     data=read_all(sub_dir)
     legs=[]
     mean_ss=[]
@@ -127,6 +138,8 @@ def plot_all(sub_dir='Stack2m',delay_max=4):
     max_x=0
     xextra=10
     fig=plt.figure()
+    ts_all=[]
+    SS_all=[]
     for name,dat in data.iteritems():
         num=len(dat)
         max_x=max(max_x,num)
@@ -138,8 +151,19 @@ def plot_all(sub_dir='Stack2m',delay_max=4):
         mean_ss_err.append(SS.std()/np.sqrt(num))
         x=ts-ts_start        
         o=np.argsort(x)
-        plt.plot(x[o],SS[o],'o')
-                
+        plt.plot(x[o],SS[o],'o-')
+        ts_all=ts_all+list(x)
+        SS_all=SS_all+list(SS)  
+    #return ts_all,SS_all
+    ts_all=np.array(ts_all)
+    SS_all=np.array(SS_all)
+    o=np.argsort(ts_all)
+    ts_all=ts_all[o]
+    SS_all=SS_all[o] 
+    #return ts_all,SS_all
+    if dolowess:    
+        smooth=lowess(ts_all,SS_all,f_lowess)
+        plt.plot(ts_all,smooth,'-',linewidth=3)
 
     for m,merr in zip(mean_ss,mean_ss_err):
         #plt.hlines(m,0,num+10,linestyle='--') 
@@ -148,24 +172,24 @@ def plot_all(sub_dir='Stack2m',delay_max=4):
         #plt.fill_between([0,num+xextra],m+merr,m-merr,alpha=0.2)
         pass    
 
-    #plt.xlim=[0,max_x+20]
     plt.ylabel('Signal Strength  = RSSI +100')
     plt.xlabel('Seconds')
-    
-    legs_full=[leg +  " : "+'%0.2f'%m+' +/- ' +'%0.1f'%e for leg,m,e in zip(legs,mean_ss,mean_ss_err)]        
-    plt.legend(legs_full)
-    plt.title(sub_dir)
-    #fig.savefig(plot_dir+'/'+sub_dir+'_ss.png')
-    plt.show()    
-    
 
+    if doleg:    
+        legs_full=[leg +  " : "+'%0.2f'%m+' +/- ' +'%0.1f'%e for leg,m,e in zip(legs,mean_ss,mean_ss_err)]        
+        plt.legend(legs_full)
+    
+    plt.title(sub_dir)
+    if showplot: plt.show()  
+
+    fig.savefig(plot_dir+'/'+sub_dir+'_ss.png')
+    
 def plot_all_subs():
-    sub_dirs=glob.glob(data_dir+'/*')     
+    sub_dirs=glob.glob(data_dir+'/*')
     for sub_full in sub_dirs:
         sub=sub_full.split('/')[-1]
         print sub
-        plot_all(sub)        
-
+        plot_all(sub,dolowess=False,showplot=False)
 
 def proc_range(sub_dir='Range0.5to4mby0.5',delay_max=3.0,noise_floor=4.0,min_plot=-4.0):
     break_points=[700,770,818,871,915,965,1015,1070,1200]
