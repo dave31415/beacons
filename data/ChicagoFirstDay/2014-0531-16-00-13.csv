@@ -1,0 +1,4 @@
+DisplayName,MAC Addr,RSSI,Last Updated,iBeacon flag,Proximity UUID,major,minor,TxPower
+Flex,DA:65:11:13:C0:82,-89,2014-05-31 16:00:12.258,false,,0,0,0
+Unknown,7C:D1:C3:17:14:95,-92,2014-05-31 16:00:13.035,false,,0,0,0
+Unknown,10:40:F3:EB:D0:9C,-96,2014-05-31 16:00:12.641,false,,0,0,0
