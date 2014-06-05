@@ -4,6 +4,7 @@ import sqlite3
 from contextlib import closing
 from flask import Flask, request, session, g, redirect, url_for, \
         abort, render_template, flash
+import json
 
 # configuration
 DATABASE = '/tmp/beacon_log.db'
@@ -11,6 +12,7 @@ DEBUG = True
 SECRET_KEY = 'development key'
 USERNAME = 'admin'
 PASSWORD = 'default'
+PORT=7979
 
 #for reguluar template which refreshes, just show the
 #most recent few
@@ -29,6 +31,23 @@ def init_db():
             db.cursor().executescript(f.read())
         db.commit()
 
+def get_lookup():
+    file='mac_look.json'
+    JSON_DC=json.JSONDecoder()
+    return JSON_DC.decode(open(file,'rU').read())
+
+def add_mac(d,lookup=None):
+    if lookup == None: lookup=get_lookup()
+    key_sep='_'
+    key=key_sep.join(['UUID',d['uuid'],'Major',str(d['major']),'Minor',str(d['minor'])])
+    if key in lookup:
+        value=lookup[key]     
+        d['MAC']=value['MAC']
+    else :
+        print "warning key %s not found" % key
+        d['MAC']='Unknown'
+    return d
+
 @app.before_request
 def before_request():
     g.db = connect_db()
@@ -40,13 +59,13 @@ def teardown_request(exception):
 @app.route('/')
 def show_latest():
     cur = g.db.execute('select * from entries order by date_str DESC limit %s'%SHOW_MAX)
-    entries = [dict(id=row[0], uuid=row[1], major=row[2], minor=row[3], rssi=row[4], date_str=row[5]) for row in cur.fetchall()]  
+    entries = [add_mac(dict(id=row[0], uuid=row[1], major=row[2], minor=row[3], rssi=row[4], date_str=row[5])) for row in cur.fetchall()]  
     return render_template('log.html', entries=entries)
 
 @app.route('/all')
 def show_all():
     cur = g.db.execute('select * from entries order by date_str DESC')
-    entries = [dict(id=row[0], uuid=row[1], major=row[2], minor=row[3], rssi=row[4], date_str=row[5]) for row in cur.fetchall()]
+    entries = [add_mac(dict(id=row[0], uuid=row[1], major=row[2], minor=row[3], rssi=row[4], date_str=row[5])) for row in cur.fetchall()]
     return render_template('log_all.html', entries=entries)
 
 
@@ -58,4 +77,4 @@ def submit_entry():
     return 'this is ok'
 
 if __name__ == '__main__':
-    app.run()
+    app.run(port=PORT)

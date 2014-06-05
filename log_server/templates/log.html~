@@ -1,10 +1,10 @@
-{% extends "layout.html" %}
+{% extends "layout_refresh.html" %}
 {% block body %}
 <div class="datagrid">
   <table>
-  <thead><tr><th>ID</th><th>UUID</th><th>Major</th><th>Minor</th><th>RSSI</th><th>Last Update</th></tr></thead>
+  <thead><tr><th>ID</th><th>UUID</th><th>MAC</th><th>Major</th><th>Minor</th><th>RSSI</th><th>Last Update</th></tr></thead>
   {% for entry in entries %}
-      <tr><td>{{entry.id}}</td><td>{{entry.uuid}}</td><td>{{entry.major}}</td><td>{{entry.minor}}</td><td>{{entry.rssi}}</td><td>{{entry.date_str}}</td></tr>
+      <tr><td>{{entry.id}}</td><td>{{entry.uuid}}</td><td></td>{{entry.MAC}}<td>{{entry.major}}</td><td>{{entry.minor}}</td><td>{{entry.rssi}}</td><td>{{entry.date_str}}</td></tr>
   {% else %}
     <tr><td><em>Log is empty</em></td></tr>
   {% endfor %}

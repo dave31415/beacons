@@ -1,7 +1,7 @@
 <!doctype html>
 <title>Beacon Log</title>
 <head>
-<META HTTP-EQUIV="refresh" CONTENT="4">
+<META HTTP-EQUIV="refresh" CONTENT="3">
 </head>
 
 <link rel=stylesheet type=text/css href="{{ url_for('static', filename='style4.css') }}">
