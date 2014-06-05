@@ -107,7 +107,7 @@ def read_csv_dump(filename,sub_dir):
     for d in data:
         d['last_time_file']=latest_measurement_time
         d['delayed_time']=d['last_time_file']-d['epoch']
-    return data        
+    return data       
 
 
 def read_all(sub_dir='Stack2m'):
