@@ -12,6 +12,10 @@ SECRET_KEY = 'development key'
 USERNAME = 'admin'
 PASSWORD = 'default'
 
+#for reguluar template which refreshes, just show the
+#most recent few
+SHOW_MAX=50
+
 app = Flask(__name__)
 app.config.from_object(__name__)
 app.config.from_envvar('FLASKR_SETTINGS', silent=True)
@@ -34,13 +38,13 @@ def teardown_request(exception):
     g.db.close()
 
 @app.route('/')
-def show_entries():
-    cur = g.db.execute('select * from entries order by date_str DESC')
+def show_latest():
+    cur = g.db.execute('select * from entries order by date_str DESC limit %s'%SHOW_MAX)
     entries = [dict(id=row[0], uuid=row[1], major=row[2], minor=row[3], rssi=row[4], date_str=row[5]) for row in cur.fetchall()]  
     return render_template('log.html', entries=entries)
 
 @app.route('/all')
-def show_entries():
+def show_all():
     cur = g.db.execute('select * from entries order by date_str DESC')
     entries = [dict(id=row[0], uuid=row[1], major=row[2], minor=row[3], rssi=row[4], date_str=row[5]) for row in cur.fetchall()]
     return render_template('log_all.html', entries=entries)

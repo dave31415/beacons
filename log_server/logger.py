@@ -58,4 +58,4 @@ def submit_entry():
     return 'this is ok'
 
 if __name__ == '__main__':
-    app.run(port=7979)
+    app.run()
