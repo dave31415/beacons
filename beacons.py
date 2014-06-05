@@ -28,7 +28,6 @@ mac_lookup={}
 for i in range(5):
     mac_lookup[macs[i]]={'mac':macs[i],'uid':unique_ids[i],'name':names[i]}
 
-
 def get_beacons(num=0):
     url=base_url+'beacon/'+unique_ids[num] 
     headers=headers = {'content-type': 'application/json','Api-Key':api_key}
@@ -63,12 +62,11 @@ def post2_beacons(num=0):
                 "Accept-Charset" : "ISO-8859-1",
                 "Content-type": "application/x-www-form-urlencoded"}
     
-    
     headers['content-type']='application/x-www-form-urlencoded'
     headers['Api-Key']=api_key
-    data={'uniqueId':uid,
-    'password':'goodnight','interval':99,'major':555555}
+    data={'uniqueId':uid,'password':'goodnight','interval':99,'major':(num+1)*100000,'minor':0}
     
+
     req = urllib2.Request(url, urllib.urlencode(data), headers)
     
     # setup socket connection timeout

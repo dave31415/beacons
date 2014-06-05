@@ -25,6 +25,8 @@ one of three groups.
 2) (-100 < RSSI < -50) You are probably more than a meter away but less than 10 meters.
 3) (No signal) You are defintely not within 3 meters and probably not within 5 meters.  
 
+Also see
+https://github.com/dave31415/BeaconScanner
 
 
 
