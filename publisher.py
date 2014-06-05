@@ -15,7 +15,7 @@ def publish_it(url=url_local,uuid='a77b',major=9999,minor=3333,rssi=-77,date_str
     headers['content-type']='application/x-www-form-urlencoded'
     headers['Api-Key']=api_key
     data={'uuid':uuid,'major':major,'minor':minor,'rssi':rssi,"date_str":date_str}
-    #print data
+    print data
 
     res=''
     try :

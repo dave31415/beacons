@@ -46,6 +46,7 @@ def add_mac(d,lookup=None):
     else :
         print "warning key %s not found" % key
         d['MAC']='Unknown'
+    d['ss']=str(100+int(d['rssi']))
     return d
 
 @app.before_request
@@ -60,7 +61,7 @@ def teardown_request(exception):
 def show_latest():
     cur = g.db.execute('select * from entries order by date_str DESC limit %s'%SHOW_MAX)
     entries = [add_mac(dict(id=row[0], uuid=row[1], major=row[2], minor=row[3], rssi=row[4], date_str=row[5])) for row in cur.fetchall()]  
-    return render_template('log.html', entries=entries)
+    return render_template('log_chart.html', entries=entries)
 
 @app.route('/all')
 def show_all():
