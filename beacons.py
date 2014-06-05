@@ -13,8 +13,8 @@ base_url="http://api.kontakt.io/"
 api_key=open('api.key','r').read().strip()
 jit=0.1
 
-root_dir='/home/davej/beacons'
-#root_dir='/Users/davej/TW/beacons'
+#root_dir='/home/davej/beacons'
+root_dir='/Users/davej/TW/beacons'
 
 data_dir=root_dir+'/data'
 plot_dir=root_dir+'/plots'
@@ -27,6 +27,17 @@ macs=['E8:66:CA:46:29:D9','C0:80:69:E4:96:80','C0:36:4C:60:FB:7A','C4:02:3E:D6:F
 mac_lookup={}
 for i in range(5):
     mac_lookup[macs[i]]={'mac':macs[i],'uid':unique_ids[i],'name':names[i]}
+
+def read_dict_json(file='mac_lookup'):
+    JSON_DC=json.JSONDecoder()
+    full_file=root_dir+'/'+file+'.json'
+    return JSON_DC.decode(open(full_file,'rU').read())
+
+def write_dict_json(dic,file='mac_lookup'):
+    JSON_EC=json.JSONEncoder()
+    json_text=JSON_EC.encode(dic)
+    full_file=root_dir+'/'+file+'.json'
+    open(full_file,'w').write(json_text)
 
 def get_beacons(num=0):
     url=base_url+'beacon/'+unique_ids[num] 
@@ -126,6 +137,21 @@ def smooth_ts(ts,Y):
     Y_s=Y[s]
     pass
 
+def make_device_lookup():
+    #make a lookup table for MAC address etc based on UUID, Major , Minor
+    key_sep='_'
+    data=read_all('Inches')
+    dic={}
+    for v in data.values():
+        for d in v:
+            key=key_sep.join(['UUID',d['Proximity UUID'],'Major',d['major'],'Minor',d['minor']])
+            value={'MAC':d['MAC Addr'],'uuid':d['Proximity UUID'],'major':d['major'],'minor':d['minor'],'name':d['name'],'uid':d['uid']}
+            dic[key]=value
+    nkeys=len(dic)
+    print 'nkeys:',nkeys
+    print dic.keys()
+    write_dict_json(dic)
+    return dic
 
 def plot_all(sub_dir='Stack2m',delay_max=4,doleg=True,f_lowess=0.15,dolowess=True,showplot=True):
     data=read_all(sub_dir)
