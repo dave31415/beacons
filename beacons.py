@@ -64,8 +64,7 @@ def post2_beacons(num=0):
     
     headers['content-type']='application/x-www-form-urlencoded'
     headers['Api-Key']=api_key
-    data={'uniqueId':uid,'password':'goodnight','interval':99,'major':(num+1)*100000,'minor':0}
-    
+    data={'uniqueId':uid,'password':'goodnight','interval':300,'major':(num+1)*100000,'minor':555222}  
 
     req = urllib2.Request(url, urllib.urlencode(data), headers)
     

@@ -1,7 +1,7 @@
 '''
 Follow the beacon log file created by C# logging application
 and send any updates to the API that keeps all the logs
--syntax 
+syntax :
 python publish.py [logfile] [url]
 '''
 
@@ -12,6 +12,9 @@ from publisher import publish_it
 nitems=5
 route='/submit'
 
+base_url_def="http://ec2-54-184-199-186.us-west-2.compute.amazonaws.com"
+base_url_def_local="http://localhost:7979"
+
 if len(sys.argv) > 1:
     file_to_follow=sys.argv[1]
 else :
@@ -20,10 +23,11 @@ else :
 if len(sys.argv) > 2:
     base_url=sys.argv[2]
 else :
-    base_url='http://localhost:7979'
+    base_url=base_url_def
+    #base_url=base_url_def_local
 
 url=base_url+route
-print "collecting data from %s and send to url %s" %(file_to_follow, url)
+print "collecting data from %s and sending to url %s" %(file_to_follow, url)
 
 def my_call_back(line):
     data=line.split(',')
