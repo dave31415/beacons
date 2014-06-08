@@ -5,6 +5,12 @@ from contextlib import closing
 from flask import Flask, request, session, g, redirect, url_for, \
         abort, render_template, flash
 import json
+import time
+from time import mktime
+from datetime import datetime
+from lowess_tmp import lowess
+import numpy as np
+import smoothing
 
 # configuration
 DATABASE = '/tmp/beacon_log.db'
@@ -16,11 +22,31 @@ PORT=7979
 
 #for reguluar template which refreshes, just show the
 #most recent few
-SHOW_MAX=50
+SHOW_MAX=300
+F_LOWESS=0.20
+STATS_WINDOW_SEC=10
+ERR_MIN=0.05
+REFRESH_RATE_SEC=400000
+SMOOTHING_TYPE='lowess'
+EXP_SM_SCALE=30.0
+SS_ZPT=100
 
 app = Flask(__name__)
 app.config.from_object(__name__)
 app.config.from_envvar('FLASKR_SETTINGS', silent=True)
+
+JSON_DC=json.JSONDecoder()
+JSON_EC=json.JSONEncoder()
+
+def epoch_from_ts(ts="Jun 05 11:31:20",sub=False):
+    ts="2014 "+ts
+    time_st=time.strptime(ts,'%Y %b %d %H:%M:%S')
+    ep=mktime(time_st)
+    if sub:
+        start_ts=ts="Jun 01 00:00:00"
+        ep_start=epoch_from_ts(start_ts,sub=False)
+        ep=ep-ep_start
+    return ep
 
 def connect_db():
     return sqlite3.connect(app.config['DATABASE'])
@@ -45,8 +71,9 @@ def add_mac(d,lookup=None):
         d['MAC']=value['MAC']
     else :
         print "warning key %s not found" % key
-        d['MAC']='Unknown'
-    d['ss']=str(100+int(d['rssi']))
+        d['MAC']=abs(hash(key))
+    d['ss']=str(SS_ZPT+int(d['rssi']))
+    d['epoch']=epoch_from_ts(d['date_str'],sub=True)
     return d
 
 @app.before_request
@@ -57,11 +84,75 @@ def before_request():
 def teardown_request(exception):
     g.db.close()
 
-@app.route('/')
+@app.route('/latest')
 def show_latest():
     cur = g.db.execute('select * from entries order by date_str DESC limit %s'%SHOW_MAX)
     entries = [add_mac(dict(id=row[0], uuid=row[1], major=row[2], minor=row[3], rssi=row[4], date_str=row[5])) for row in cur.fetchall()]  
     return render_template('log_chart.html', entries=entries)
+
+@app.route('/',methods=['POST','GET'])
+def chart_latest():
+    #form changable parameters
+    message=request.form.get('message', '') 
+    showmax=int(request.form.get('showmax', SHOW_MAX))
+    smoothing_type=request.form.get('smoothing_type', SMOOTHING_TYPE)
+    f_lowess=float(request.form.get('f_lowess', F_LOWESS))
+    exp_sm_scale=float(request.form.get('exp_sm_scale', EXP_SM_SCALE))
+    refresh_rate_sec=int(request.form.get('refresh_rate_sec', REFRESH_RATE_SEC))
+
+    #TODO: careful about sorting by date string. Not correct!!  
+    cur = g.db.execute('select * from entries order by date_str DESC limit %s'%showmax)
+    entries = [add_mac(dict(id=row[0], uuid=row[1], major=row[2], minor=row[3], rssi=row[4], date_str=row[5])) for row in cur.fetchall()]
+    #entries is a list of dicts, get unique MACs
+    macs=list({e['MAC'] for e in entries})
+    macs=sorted(macs)
+    n_macs=len(macs)
+    xs_dict={}
+    columns_list=[]
+    x_all=[]
+    data_all=[]
+    for i in xrange(n_macs) :
+        ii=str(i)
+        data_name="data"+ii
+        x_name='x'+ii
+        xs_dict[data_name]=x_name
+        x=[e['epoch'] for e in entries if e['MAC']==macs[i]]
+        dat=[int(e['ss']) for e in entries if e['MAC']==macs[i]]
+        x_all=x_all+x
+        data_all=data_all+dat
+        columns_list.append([x_name]+x)
+        columns_list.append([data_name]+dat)
+    x_all=np.array(x_all)
+    data_all=np.array(data_all)
+
+    so=np.argsort(x_all)
+    x_all=x_all[so]
+    data_all=data_all[so]
+
+    if smoothing_type == 'lowess' :
+        data_smooth=lowess(x_all,data_all,f=f_lowess,iter=3)
+    else :
+        data_smooth=smoothing.smooth_exp(x_all,data_all,scale=exp_sm_scale)
+
+    xs_dict['data_all']='x_all'
+    columns_list.append(['x_all']+list(x_all))
+    columns_list.append(['data_all']+list(data_smooth))
+    columns_list=list(reversed(columns_list))
+
+    time_last=x_all[-1]
+    window=x_all > (time_last-STATS_WINDOW_SEC)
+    
+    ss_mean="%0.1f" % data_all[window].mean()
+    ss_sigma="%0.2f" % np.sqrt(data_all[window].std()**2 + ERR_MIN**2)
+    ss_mean_smooth="%0.1f" % data_smooth[window].mean()
+    ss_sigma_smooth="%0.2f" % np.sqrt(data_smooth[window].std()**2+ERR_MIN**2)
+
+    dist_m_numeric=smoothing.dist_power_law(float(ss_mean_smooth)-SS_ZPT)
+    dist_m="%0.2f" % dist_m_numeric
+
+    return render_template('log_charts.html', entries=entries,xs=xs_dict,columns=columns_list,ss_mean=ss_mean,ss_sigma=ss_sigma,
+                           ss_mean_smooth=ss_mean_smooth,ss_sigma_smooth=ss_sigma_smooth,message=message, dist_m=dist_m,
+                           showmax=showmax,smoothing_type=smoothing_type,f_lowess=f_lowess,exp_sm_scale=exp_sm_scale,refresh_rate_sec=refresh_rate_sec)
 
 @app.route('/all')
 def show_all():
@@ -69,12 +160,12 @@ def show_all():
     entries = [add_mac(dict(id=row[0], uuid=row[1], major=row[2], minor=row[3], rssi=row[4], date_str=row[5])) for row in cur.fetchall()]
     return render_template('log_all.html', entries=entries)
 
-
 @app.route('/submit', methods=['POST'])
 def submit_entry():
     g.db.execute('insert into entries (uuid, major,minor,rssi,date_str) values (?, ?, ?, ?, ?)',
             [request.form['uuid'], request.form['major'], request.form['minor'], request.form['rssi'], request.form['date_str']])
     g.db.commit()
+    print "submission received"
     return 'this is ok'
 
 if __name__ == '__main__':

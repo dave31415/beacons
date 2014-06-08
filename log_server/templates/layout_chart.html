@@ -1,0 +1,39 @@
+<!doctype html>
+<title>Beacon Log</title>
+<head>
+<META HTTP-EQUIV="refresh" CONTENT="{{refresh_rate_sec}}">
+<link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
+<link href={{ url_for('static', filename='c3.css') }} rel="stylesheet" type="text/css">
+</head>
+<script src={{ url_for('static', filename='d3.min.js') }} charset="utf-8" ></script>
+<script src={{ url_for('static', filename='c3.min.js') }} ></script>
+
+<div class=page>
+  <h1>Beacon Log</h1>
+  <h2> 
+    <p>Signal Strength = {{ss_mean_smooth}} +/- {{ss_sigma_smooth}} </p> 
+    <p>Raw Signal Strength = {{ss_mean}} Sigma = {{ss_sigma}} </p>
+    <p>Distance = {{dist_m}} meters</p>
+    {% if message %} <p>Message = {{message}}</p> {% endif %}
+<form method="POST" action="/">
+    showmax:<input type="text" value="{{showmax}}" name="showmax">
+    smoothing: <br>
+    <input type="radio" value="lowess" name="smoothing_type" {% if smoothing_type == 'lowess' %} checked="checked" {% endif %} > lowess
+    <input type="radio" value="exponential" name="smoothing_type" {% if smoothing_type == 'exponential' %} checked="checked" {% endif %} > exponential <br>
+    f_lowess:<input type="text" value="{{f_lowess}}" name="f_lowess">
+    exp smoothing scale:<input type="text" value="{{exp_sm_scale}}" name="exp_sm_scale">
+
+    {% if False %} <br> Refresh Rate (sec):<input type="text" value="{{refresh_rate_sec}}" name="refresh_rate_sec"> {% endif %}
+    <br> <input type="submit" value="Refresh">
+</form>
+  </h2>
+  
+
+<div id="chart"></div>
+
+<p> <a href="{{ url_for('show_all') }}">See All</a></p>
+  {% block body %}{% endblock %}
+</div>
+
+</html>
+
