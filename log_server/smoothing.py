@@ -102,24 +102,39 @@ def filter_window_PL(x,B,beta=0.0,plot=False):
     if plot : plt.plot(x,filter)
     return filter
 
-def windowed_mean(t,y,B,t_point=None,beta=0.3):
+def windowed_mean(t,y,B,t_point=None,beta=0.3,norm=True,sym=True,flip=False):
     if t_point == None:
         t_point=t.max()
     x=t_point-t    
+    if sym : x=abs(x)
+    if flip: x=-x
     weight=filter_window_PL(x,B,beta=beta)
-    weight /= weight.sum()
+    if norm : weight /= weight.sum()
     return (weight*y).sum()
 
-def smooth(t,y,B=10.0,beta=0.3,plot=False):
+def smooth(t,y,B=10.0,beta=1.0,plot=False):
     sm=y*0.0
+    num=y*0.0
+    epsilon=0.01
     assert(B>0)
+    t_zeros=[]
     for i,t_point in enumerate(t):
         sm[i]=windowed_mean(t,y,B,t_point=t_point,beta=beta)
+        num[i]=windowed_mean(t,y*0+1.0,B,t_point=t_point,beta=0.0,norm=False)
+        num_past=windowed_mean(t,y*0+1.0,B,t_point=t_point,beta=0.0,norm=False,sym=False)
+        num_future=windowed_mean(t,y*0+1.0,B,t_point=t_point,beta=0.0,norm=False,sym=False,flip=True)
+        num_min=min(num_future,num_past)
+        if num_past == 1 :
+            t_zeros.append(t_point-epsilon)
+        if num_future == 1: 
+            t_zeros.append(t_point+epsilon)
+           
     if plot:
         plt.plot(t,y)
         plt.plot(t,sm)
-    return sm
-
+    
+    return sm,t_zeros
+    
 
 
 

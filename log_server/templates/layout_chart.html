@@ -22,7 +22,7 @@
     <input type="radio" value="windowed" name="smoothing_type" {% if smoothing_type == 'windowed' %} checked="checked" {% endif %} > windowed <br>
     f_lowess:<input type="text" value="{{f_lowess}}" name="f_lowess">
     window (sec) :<input type="text" value="{{box_sm_sec}}" name="box_sm_sec">
-
+        
     {% if False %} <br> Refresh Rate (sec):<input type="text" value="{{refresh_rate_sec}}" name="refresh_rate_sec"> {% endif %}
     <br> <input type="submit" value="Refresh">
 </form>

@@ -29,6 +29,10 @@ REFRESH_RATE_SEC=100000
 SMOOTHING_TYPE='windowed'
 BOX_SM_SEC=30.0
 SS_ZPT=100
+TIME_SUBTRACT=698000
+NO_SIGNAL_VALUE=0.3
+JITTER=0.1
+SHOW_ALL=False
 
 app = Flask(__name__)
 app.config.from_object(__name__)
@@ -92,6 +96,7 @@ def chart_latest():
     f_lowess=float(request.form.get('f_lowess', F_LOWESS))
     box_sm_sec=float(request.form.get('box_sm_sec', BOX_SM_SEC))
     refresh_rate_sec=int(request.form.get('refresh_rate_sec', REFRESH_RATE_SEC))
+    showall=int(request.form.get('showall', SHOW_ALL))
 
     #TODO: careful about sorting by date string. Not correct!!  
     cur = g.db.execute('select * from entries order by date_str DESC limit %s'%showmax)
@@ -108,13 +113,16 @@ def chart_latest():
         ii=str(i)
         data_name="data"+ii
         x_name='x'+ii
-        xs_dict[data_name]=x_name
-        x=[e['epoch'] for e in entries if e['MAC']==macs[i]]
+        x=[e['epoch']-TIME_SUBTRACT+JITTER*np.random.randn() for e in entries if e['MAC']==macs[i]]
         dat=[int(e['ss']) for e in entries if e['MAC']==macs[i]]
         x_all=x_all+x
         data_all=data_all+dat
-        columns_list.append([x_name]+x)
-        columns_list.append([data_name]+dat)
+        
+        if  SHOW_ALL:
+            xs_dict[data_name]=x_name
+            columns_list.append([x_name]+x)
+            columns_list.append([data_name]+dat)
+        
     x_all=np.array(x_all)
     data_all=np.array(data_all)
 
@@ -122,16 +130,20 @@ def chart_latest():
     x_all=x_all[so]
     data_all=data_all[so]
 
+    t_zeros=[]
+
     if smoothing_type == 'lowess' :
         data_smooth=lowess(x_all,data_all,f=f_lowess,iter=3)
     if smoothing_type == 'exponential' :
         data_smooth=smoothing.smooth_exp(data_all,scale=exp_sm_scale)
     if smoothing_type == 'windowed' :
-        data_smooth=smoothing.smooth(x_all,data_all,B=box_sm_sec,beta=1.0)
-
+        data_smooth,t_zeros = smoothing.smooth(x_all,data_all,B=box_sm_sec,beta=1.0)
+        
+    no_signal=[NO_SIGNAL_VALUE for i in t_zeros] 
+    
     xs_dict['data_all']='x_all'
-    columns_list.append(['x_all']+list(x_all))
-    columns_list.append(['data_all']+list(data_smooth))
+    columns_list.append(['x_all']+t_zeros+list(x_all))
+    columns_list.append(['data_all']+no_signal+list(data_smooth))
     columns_list=list(reversed(columns_list))
 
     time_last=x_all[-1]
@@ -148,6 +160,7 @@ def chart_latest():
     return render_template('log_charts.html', entries=entries,xs=xs_dict,columns=columns_list,ss_mean=ss_mean,ss_sigma=ss_sigma,
                            ss_mean_smooth=ss_mean_smooth,ss_sigma_smooth=ss_sigma_smooth,message=message, dist_m=dist_m,
                            showmax=showmax,smoothing_type=smoothing_type,f_lowess=f_lowess,box_sm_sec=box_sm_sec,
+                           showall=showall,
                            refresh_rate_sec=refresh_rate_sec)
 
 @app.route('/all')
