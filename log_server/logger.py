@@ -2,8 +2,7 @@
 from __future__ import with_statement
 import sqlite3
 from contextlib import closing
-from flask import Flask, request, session, g, redirect, url_for, \
-        abort, render_template, flash
+from flask import Flask, request, g, url_for, render_template
 import json
 import time
 from time import mktime
@@ -23,12 +22,12 @@ PORT=7979
 #for reguluar template which refreshes, just show the
 #most recent few
 SHOW_MAX=300
-F_LOWESS=0.20
-STATS_WINDOW_SEC=10
+F_LOWESS=0.1
+STATS_WINDOW_SEC=15
 ERR_MIN=0.05
-REFRESH_RATE_SEC=400000
-SMOOTHING_TYPE='lowess'
-EXP_SM_SCALE=30.0
+REFRESH_RATE_SEC=100000
+SMOOTHING_TYPE='windowed'
+BOX_SM_SEC=30.0
 SS_ZPT=100
 
 app = Flask(__name__)
@@ -84,12 +83,6 @@ def before_request():
 def teardown_request(exception):
     g.db.close()
 
-@app.route('/latest')
-def show_latest():
-    cur = g.db.execute('select * from entries order by date_str DESC limit %s'%SHOW_MAX)
-    entries = [add_mac(dict(id=row[0], uuid=row[1], major=row[2], minor=row[3], rssi=row[4], date_str=row[5])) for row in cur.fetchall()]  
-    return render_template('log_chart.html', entries=entries)
-
 @app.route('/',methods=['POST','GET'])
 def chart_latest():
     #form changable parameters
@@ -97,7 +90,7 @@ def chart_latest():
     showmax=int(request.form.get('showmax', SHOW_MAX))
     smoothing_type=request.form.get('smoothing_type', SMOOTHING_TYPE)
     f_lowess=float(request.form.get('f_lowess', F_LOWESS))
-    exp_sm_scale=float(request.form.get('exp_sm_scale', EXP_SM_SCALE))
+    box_sm_sec=float(request.form.get('box_sm_sec', BOX_SM_SEC))
     refresh_rate_sec=int(request.form.get('refresh_rate_sec', REFRESH_RATE_SEC))
 
     #TODO: careful about sorting by date string. Not correct!!  
@@ -131,8 +124,10 @@ def chart_latest():
 
     if smoothing_type == 'lowess' :
         data_smooth=lowess(x_all,data_all,f=f_lowess,iter=3)
-    else :
-        data_smooth=smoothing.smooth_exp(x_all,data_all,scale=exp_sm_scale)
+    if smoothing_type == 'exponential' :
+        data_smooth=smoothing.smooth_exp(data_all,scale=exp_sm_scale)
+    if smoothing_type == 'windowed' :
+        data_smooth=smoothing.smooth(x_all,data_all,B=box_sm_sec,beta=1.0)
 
     xs_dict['data_all']='x_all'
     columns_list.append(['x_all']+list(x_all))
@@ -152,7 +147,8 @@ def chart_latest():
 
     return render_template('log_charts.html', entries=entries,xs=xs_dict,columns=columns_list,ss_mean=ss_mean,ss_sigma=ss_sigma,
                            ss_mean_smooth=ss_mean_smooth,ss_sigma_smooth=ss_sigma_smooth,message=message, dist_m=dist_m,
-                           showmax=showmax,smoothing_type=smoothing_type,f_lowess=f_lowess,exp_sm_scale=exp_sm_scale,refresh_rate_sec=refresh_rate_sec)
+                           showmax=showmax,smoothing_type=smoothing_type,f_lowess=f_lowess,box_sm_sec=box_sm_sec,
+                           refresh_rate_sec=refresh_rate_sec)
 
 @app.route('/all')
 def show_all():

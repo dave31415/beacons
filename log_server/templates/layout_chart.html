@@ -19,9 +19,9 @@
     showmax:<input type="text" value="{{showmax}}" name="showmax">
     smoothing: <br>
     <input type="radio" value="lowess" name="smoothing_type" {% if smoothing_type == 'lowess' %} checked="checked" {% endif %} > lowess
-    <input type="radio" value="exponential" name="smoothing_type" {% if smoothing_type == 'exponential' %} checked="checked" {% endif %} > exponential <br>
+    <input type="radio" value="windowed" name="smoothing_type" {% if smoothing_type == 'windowed' %} checked="checked" {% endif %} > windowed <br>
     f_lowess:<input type="text" value="{{f_lowess}}" name="f_lowess">
-    exp smoothing scale:<input type="text" value="{{exp_sm_scale}}" name="exp_sm_scale">
+    window (sec) :<input type="text" value="{{box_sm_sec}}" name="box_sm_sec">
 
     {% if False %} <br> Refresh Rate (sec):<input type="text" value="{{refresh_rate_sec}}" name="refresh_rate_sec"> {% endif %}
     <br> <input type="submit" value="Refresh">

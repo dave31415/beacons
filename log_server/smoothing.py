@@ -4,7 +4,22 @@ from matplotlib.cbook import flatten
 
 beta_def=17.5
 
-def smooth_exp(x,y,scale=10.0,N=4):
+def smooth_exp(y,scale=10.0,N=4):
+    #smooth with expoential tail
+    yrev=np.array(y)[::-1]
+    size=np.ceil(scale*N)
+    weight=np.exp(-np.arange(size)/scale)
+    yrev_sm=yrev*0.0
+    for i in xrange(len(y)):
+        y_window=yrev[i:i+scale*N]
+        #normalize, might be truncated
+        w=weight[0:len(y_window)]
+        w=w/w.sum()
+        yrev_sm[i]=(y_window*w).sum()
+    y_sm=yrev_sm[::-1]
+    return y_sm
+
+def smooth_exp_xy(x,y,scale=10.0,N=4):
     #smooth with expoential tail backwards in time
     #should be sorted by x
     xrev=np.array(x)[::-1]
@@ -75,9 +90,35 @@ def prob_grid():
     im[0:,0:,0]=imflat_g
     plt.imshow(im)
 
+def filter_window_PL(x,B,beta=0.0,plot=False):    
+    '''filter for smoothing, B is the Box size. 
+    beta=0.0 : box-car smoothing
+    beta=1.0 : straight line from 1 to 0
+    beta=4.5 : approximate exponential smoothing with scale ~ B/5
+    '''
+    rat=(x/float(B))
+    filter=(1.0-rat)**beta
+    filter[(x>B) | (x<0)]=0.0
+    if plot : plt.plot(x,filter)
+    return filter
 
-    
+def windowed_mean(t,y,B,t_point=None,beta=0.3):
+    if t_point == None:
+        t_point=t.max()
+    x=t_point-t    
+    weight=filter_window_PL(x,B,beta=beta)
+    weight /= weight.sum()
+    return (weight*y).sum()
 
+def smooth(t,y,B=10.0,beta=0.3,plot=False):
+    sm=y*0.0
+    assert(B>0)
+    for i,t_point in enumerate(t):
+        sm[i]=windowed_mean(t,y,B,t_point=t_point,beta=beta)
+    if plot:
+        plt.plot(t,y)
+        plt.plot(t,sm)
+    return sm
 
 
 
