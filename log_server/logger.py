@@ -21,18 +21,18 @@ PORT=7979
 
 #for reguluar template which refreshes, just show the
 #most recent few
-SHOW_MAX=300
+SHOW_MAX=500
 F_LOWESS=0.1
 STATS_WINDOW_SEC=15
 ERR_MIN=0.05
 REFRESH_RATE_SEC=100000
 SMOOTHING_TYPE='windowed'
-BOX_SM_SEC=30.0
+BOX_SM_SEC=20.0
 SS_ZPT=100
-TIME_SUBTRACT=698000
+TIME_SUBTRACT=698000+14500
 NO_SIGNAL_VALUE=0.3
-JITTER=0.1
-SHOW_ALL=False
+JITTER=0.3
+SHOW_ALL=True
 
 app = Flask(__name__)
 app.config.from_object(__name__)
@@ -50,6 +50,15 @@ def epoch_from_ts(ts="Jun 05 11:31:20",sub=False):
         ep_start=epoch_from_ts(start_ts,sub=False)
         ep=ep-ep_start
     return ep
+    
+def integerify(some_list):
+    return  some_list
+    for i,l in enumerate(some_list):
+        if isinstance(l,list) : l=integerify(l)
+        if isinstance(l,float) or isinstance(l,int): 
+            print 'float',l
+            some_list[i]=float("%0.1f" % i)
+    return some_list
 
 def connect_db():
     return sqlite3.connect(app.config['DATABASE'])
@@ -144,8 +153,9 @@ def chart_latest():
     xs_dict['data_all']='x_all'
     columns_list.append(['x_all']+t_zeros+list(x_all))
     columns_list.append(['data_all']+no_signal+list(data_smooth))
+    #a hack just for the colors
     columns_list=list(reversed(columns_list))
-
+    
     time_last=x_all[-1]
     window=x_all > (time_last-STATS_WINDOW_SEC)
     
