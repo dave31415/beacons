@@ -49,5 +49,5 @@ This will connect the circuit. Wait a few seconds for some data to build up and 
 visit the url with your browser. You should see a webpage with a chart at the top and some information 
 and a table of the data below.
 
-![alt tag](https://raw.githubusercontent.com/dave31415/beacons/master/static/BeaconApp.png)
+![alt tag](https://raw.githubusercontent.com/dave31415/beacons/master/static/App.png)
 
