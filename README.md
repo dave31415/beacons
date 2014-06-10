@@ -21,7 +21,7 @@ and numpy and matplotlib
 
 Make a PARAMS file (which is in the .gitignore)
 
-cp log_server/PARAMS_DEFAULT log_server/PARAMS
+cp PARAMS_DEFAULT PARAMS
 
 and edit that file as needed.  
 
@@ -29,8 +29,6 @@ You may need to create a file 'api.key' if you are running the server on a remot
 such as on AWS. Also keep in .gitignore
 
 Now, lets run the logger!
-
-cd log_server
 
 python logger.py
 
