@@ -2,3 +2,5 @@
 *.~
 api.key
 passwd
+PARAMS
+mac_lookup.json

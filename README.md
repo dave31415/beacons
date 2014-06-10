@@ -5,9 +5,11 @@ Some experiments on the detection of iBeacons
 
 Using 5 Kontakt beacons
 
-Download and install this first which is an App to scan for iBeacons and log the results to a file. 
+Download and install the following App first 
 
 https://github.com/dave31415/BeaconScanner
+
+That scans for iBeacons and logg them to a file
 
 This repo requires tailer and Flask. 
 
@@ -16,6 +18,17 @@ sudo pip install tailer
 sudo pip install Flask
 
 and numpy and matplotlib
+
+Make a PARAMS file (which is in the .gitignore)
+
+cp log_server/PARAMS_DEFAULT log_server/PARAMS
+
+and edit that file as needed.  
+
+You may need to create a file 'api.key' if you are running the server on a remote machine
+such as on AWS. Also keep in .gitignore
+
+Now, lets run the logger!
 
 cd log_server
 
@@ -26,7 +39,7 @@ Don't visit this url immediately.
 
 This app will now be waiting for REST calls from the publisher and the BeaconScanner App will be logging 
 data to your logfile. Now we will start the publisher which will "tail" that logfile annd send new data to the
-webapp. Start this with 
+webapp which will store the data in SQLLite and make charts. Start this with 
 
 python publish.py
 

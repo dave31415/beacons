@@ -6,20 +6,25 @@ from matplotlib import pylab as plt
 import numpy as np
 from time import mktime
 from datetime import datetime
-import time
+import time,os
 from lowess import lowess
 
 base_url="http://api.kontakt.io/"
-api_key=open('api.key','r').read().strip()
+api_key='NoAPIkey'
+api_key_file='api.key'
+if os.path.isfile(api_key_file):
+    api_key=open('api.key','r').read().strip()
+
 jit=0.1
 
-#root_dir='/home/davej/beacons'
 root_dir='/Users/davej/TW/beacons'
 
 data_dir=root_dir+'/data'
 plot_dir=root_dir+'/plots'
 
-ts_start=1401384000
+#subtract this number from epoch to make them smallist
+#June 9, 2014, around 11 pm EST
+ts_start=1402369525
 
 unique_ids=['dFTG','DuOP','cYOy','aqO9','HMGV']
 names=['Bathroom','Bedroom','Boys room','Gwens Room','Kitchen']

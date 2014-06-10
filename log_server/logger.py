@@ -11,24 +11,19 @@ from lowess_tmp import lowess
 import numpy as np
 import smoothing
 
-# configuration
-DATABASE='/Users/davej/data/beacon_data/beacon_logs.db'
-DEBUG = True
-SECRET_KEY = 'development key'
-USERNAME = 'admin'
-PASSWORD = 'default'
-PORT=7979
+from PARAMS import *
 
-#for reguluar template which refreshes, just show the
-#most recent few
+#important parameters and defaults
+
+DEBUG = True
 SHOW_MAX=100
 F_LOWESS=0.1
 STATS_WINDOW_SEC=15
 ERR_MIN=0.05
-REFRESH_RATE_SEC=5
+REFRESH_RATE_SEC=5000000000
 SMOOTHING_TYPE='windowed'
 BOX_SM_SEC=20.0
-SS_ZPT=0
+SS_ZPT=100
 TIME_SUBTRACT=698000+14500
 NO_SIGNAL_VALUE=0.3
 JITTER=0.3
