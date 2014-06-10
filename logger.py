@@ -20,7 +20,6 @@ ERR_MIN=0.05
 REFRESH_RATE_SEC=5000000000
 SMOOTHING_TYPE='windowed'
 BOX_SM_SEC=20.0
-SS_ZPT=100
 TIME_SUBTRACT=698000+14500
 NO_SIGNAL_VALUE=0.3
 JITTER=0.3
@@ -77,7 +76,7 @@ def chart_latest():
         data_name="data"+ii
         x_name='x'+ii
         x=[e['epoch']-TIME_SUBTRACT+JITTER*np.random.randn() for e in entries if e['MAC']==macs[i]]
-        dat=[int(e['ss']) for e in entries if e['MAC']==macs[i]]
+        dat=[int(float(e['ss'])) for e in entries if e['MAC']==macs[i]]
         x_all=x_all+x
         data_all=data_all+dat
         

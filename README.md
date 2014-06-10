@@ -1,22 +1,55 @@
-Logger App
-======
+beacons
+=======
 
-Python: 2.7.3
+Some experiments on the detection of iBeacons
 
-Flask
+Using 5 Kontakt beacons
 
-Install
--------
+Download and install the following App first 
 
-$ sqlite3 /tmp/beacon_log.db < schema.sql
+https://github.com/dave31415/BeaconScanner
 
-$ python
+That scans for iBeacons and logg them to a file
 
-    >>> from logger import init_db
+This repo requires tailer and Flask. 
 
-    >>> init_db()
+sudo pip install tailer
 
-$ python logger.py
+sudo pip install Flask
 
- * Running on http://localhost:7979/
+and numpy and matplotlib
+
+Make a PARAMS file (which is in the .gitignore)
+
+cp log_server/PARAMS_DEFAULT log_server/PARAMS
+
+and edit that file as needed.  
+
+You may need to create a file 'api.key' if you are running the server on a remote machine
+such as on AWS. Also keep in .gitignore
+
+Now, lets run the logger!
+
+cd log_server
+
+python logger.py
+
+This will print out the url which is by default http://localhost:7979
+Don't visit this url immediately. 
+
+This app will now be waiting for REST calls from the publisher and the BeaconScanner App will be logging 
+data to your logfile. Now we will start the publisher which will "tail" that logfile annd send new data to the
+webapp which will store the data in SQLLite and make charts. Start this with 
+
+python publish.py
+
+or specify the logfile and url specifically, e.g. 
+
+python publisher.py /path/to/log http://ec2.myserver.aws.com
+
+This will connect the circuit. Wait a few seconds for some data to build up and then
+visit the url with your browser. You should see a webpage with a chart at the top and some information 
+and a table of the data below.
+
+
 
