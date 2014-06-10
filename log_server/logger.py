@@ -12,7 +12,7 @@ import numpy as np
 import smoothing
 
 # configuration
-DATABASE = '/tmp/beacon_log.db'
+DATABASE='/Users/davej/data/beacon_data/beacon_logs.db'
 DEBUG = True
 SECRET_KEY = 'development key'
 USERNAME = 'admin'
@@ -21,18 +21,18 @@ PORT=7979
 
 #for reguluar template which refreshes, just show the
 #most recent few
-SHOW_MAX=500
+SHOW_MAX=100
 F_LOWESS=0.1
 STATS_WINDOW_SEC=15
 ERR_MIN=0.05
-REFRESH_RATE_SEC=100000
+REFRESH_RATE_SEC=5
 SMOOTHING_TYPE='windowed'
 BOX_SM_SEC=20.0
-SS_ZPT=100
+SS_ZPT=0
 TIME_SUBTRACT=698000+14500
 NO_SIGNAL_VALUE=0.3
 JITTER=0.3
-SHOW_ALL=True
+SHOW_ALL="yes"
 
 app = Flask(__name__)
 app.config.from_object(__name__)
@@ -105,7 +105,7 @@ def chart_latest():
     f_lowess=float(request.form.get('f_lowess', F_LOWESS))
     box_sm_sec=float(request.form.get('box_sm_sec', BOX_SM_SEC))
     refresh_rate_sec=int(request.form.get('refresh_rate_sec', REFRESH_RATE_SEC))
-    showall=int(request.form.get('showall', SHOW_ALL))
+    showall=request.form.get('showall', SHOW_ALL)
 
     #TODO: careful about sorting by date string. Not correct!!  
     cur = g.db.execute('select * from entries order by date_str DESC limit %s'%showmax)
@@ -127,7 +127,7 @@ def chart_latest():
         x_all=x_all+x
         data_all=data_all+dat
         
-        if  SHOW_ALL:
+        if  showall == 'yes':
             xs_dict[data_name]=x_name
             columns_list.append([x_name]+x)
             columns_list.append([data_name]+dat)
@@ -181,10 +181,11 @@ def show_all():
 
 @app.route('/submit', methods=['POST'])
 def submit_entry():
+    print "submission received"
     g.db.execute('insert into entries (uuid, major,minor,rssi,date_str) values (?, ?, ?, ?, ?)',
             [request.form['uuid'], request.form['major'], request.form['minor'], request.form['rssi'], request.form['date_str']])
     g.db.commit()
-    print "submission received"
+    print "submission entered'"
     return 'this is ok'
 
 if __name__ == '__main__':

@@ -24,6 +24,10 @@
     window (sec) :<input type="text" value="{{box_sm_sec}}" name="box_sm_sec">
         
     {% if False %} <br> Refresh Rate (sec):<input type="text" value="{{refresh_rate_sec}}" name="refresh_rate_sec"> {% endif %}
+    <br>show all:<br>
+    <input type="radio" value="yes" name="showall" {% if showall == "yes" %} checked="checked" {% endif %} > Yes
+    <input type="radio" value="no" name="showall" {% if showall == "no" %} checked="checked" {% endif %} > No <br>
+    
     <br> <input type="submit" value="Refresh">
 </form>
   </h2>
