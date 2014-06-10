@@ -12,8 +12,8 @@ from publisher import publish_it
 nitems=5
 route='/submit'
 
-base_url_def="http://ec2-54-184-199-186.us-west-2.compute.amazonaws.com"
-base_url_def_local="http://localhost:7979"
+#base_url_def="http://ec2-54-184-199-186.us-west-2.compute.amazonaws.com"
+base_url_def="http://localhost:7979"
 
 if len(sys.argv) > 1:
     file_to_follow=sys.argv[1]
@@ -24,7 +24,6 @@ if len(sys.argv) > 2:
     base_url=sys.argv[2]
 else :
     base_url=base_url_def
-    #base_url=base_url_def_local
 
 url=base_url+route
 print "collecting data from %s and sending to url %s" %(file_to_follow, url)

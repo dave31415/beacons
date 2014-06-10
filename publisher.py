@@ -3,8 +3,7 @@ import urllib, urllib2, cookielib, socket
 import random
 
 url_local='http://localhost:7979/submit'
-api_key="BlahBlah"
-
+api_key="NotImplemented"
 
 def publish_it(url=url_local,uuid='a77b',major=9999,minor=3333,rssi=-77,date_str='June 18 1975'):
     #publish some stuff to api
