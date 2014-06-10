@@ -1,0 +1,13 @@
+# default configuration
+#copy this to PARAMS, edit it with your info
+#keep PARAMS private by keeping this in the .gitignore file
+                                                                         
+#where to put SQLite database file?
+DATABASE='/PATH/TO/beacon_logs.db'
+
+PORT=7979
+
+#none of these are currently used as there is no real security yet
+SECRET_KEY = 'very secret'
+USERNAME = 'beacons'
+PASSWORD = 'wickedsecret'

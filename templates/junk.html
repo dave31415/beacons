@@ -1,0 +1,25 @@
+<!doctype html>
+<title>Beacon Log</title>
+<link href=../static/c3.css rel="stylesheet" type="text/css">
+<script src=../static/d3.min.js charset="utf-8" ></script>
+<script src=../static/c3.min.js ></script>
+
+<div class=page>
+  <h1>Beacon Log</h1>
+<div id="chart"></div>
+</div>
+
+<script type=text/javascript>
+var chart = c3.generate({
+    bindto: '#chart',
+    data: {
+      columns: [
+        ['data1', 30, 200, 100, 400, 150, 250],
+        ['data2', 50, 20, 10, 40, 15, 25]
+      ]
+    }
+});
+</script>
+
+
+</html>
