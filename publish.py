@@ -28,13 +28,15 @@ else :
 url=base_url+route
 print "collecting data from %s and sending to url %s" %(file_to_follow, url)
 
-def my_call_back(line):
+def publish_5(line):
     data=line.split(',')
     if len(data) != nitems:
         print "Warning did not find %s comma separated items. Skipping line." % nitems
     else :
         uuid,major,minor, rssi, date_str = data
         publish_it(url=url,uuid=uuid,major=major,minor=minor,rssi=rssi,date_str=date_str)
+
+my_call_back=publish_5
 
 for line in tailer.follow(open(file_to_follow)):
     my_call_back(line)
